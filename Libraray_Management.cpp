@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 using namespace std;
 
 class Library {
@@ -174,10 +175,64 @@ void Library::deleteBook() {
 }
 
 // 6. Issue Book
+#include <algorithm>  
+
 void Library::issueBook() {
     string user;
     cout << "\nEnter Book ID to Issue: ";
+    getline(cin, sID);  
+
+    cout << "Enter Your Name: ";
+    getline(cin, user);  
+   
+    transform(sID.begin(), sID.end(), sID.begin(), ::tolower);
+
+    bool found = false; 
+
+    file.open("LibraryData.txt", ios::in);
+    ofstream temp("Temp.txt"); 
+    string qty; 
+
+    while (getline(file, bookID, '|')) {
+        getline(file, title, '|');
+        getline(file, author, '|');
+        getline(file, quantity);
+
+        bookID = bookID.substr(bookID.find_first_not_of(" \t"), bookID.find_last_not_of(" \t") + 1);
+        
+        transform(bookID.begin(), bookID.end(), bookID.begin(), ::tolower);
+
+        if (bookID == sID) {
+            int q = stoi(quantity);
+            
+            if (q > 0) {  
+                q--; 
+                quantity = to_string(q);  
+                
+         
+                ofstream issue("IssuedBooks.txt", ios::app);  
+                issue << bookID << " | " << user << "\n";  
+                issue.close();
+
+                cout << "\nBook Issued to " << user; 
+            } else {
+                cout << "\nBook Not Available!";  
+            }
+            found = true;  
+        }
+
+        temp << bookID << " | " << title << " | " << author << " | " << quantity << "\n";
+    }
+
+    file.close();
+    temp.close(); 
+}
+
+void Library::returnBook() {
+    string user;
+    cout << "\nEnter Book ID to Return: ";
     getline(cin, sID);
+
     cout << "Enter Your Name: ";
     getline(cin, user);
 
@@ -191,18 +246,20 @@ void Library::issueBook() {
         getline(file, author, '|');
         getline(file, quantity);
 
+        bookID = bookID.substr(bookID.find_first_not_of(" \t"), bookID.find_last_not_of(" \t") + 1);
+        transform(bookID.begin(), bookID.end(), bookID.begin(), ::tolower);
+        transform(sID.begin(), sID.end(), sID.begin(), ::tolower);
+
         if (bookID == sID) {
             int q = stoi(quantity);
-            if (q > 0) {
-                q--;
-                quantity = to_string(q);
-                ofstream issue("IssuedBooks.txt", ios::app);
-                issue << bookID << " | " << user << "\n";
-                issue.close();
-                cout << "\nBook Issued to " << user;
-            } else {
-                cout << "\nBook Not Available!";
-            }
+            q++;
+            quantity = to_string(q);
+
+            ofstream returned("ReturnedBooks.txt", ios::app);
+            returned << bookID << " | " << user << "\n";
+            returned.close();
+
+            cout << "\nBook Returned by " << user;
             found = true;
         }
 
@@ -211,65 +268,12 @@ void Library::issueBook() {
 
     file.close();
     temp.close();
+
     remove("LibraryData.txt");
     rename("Temp.txt", "LibraryData.txt");
 
-    if (!found) cout << "\nBook Not Found!";
-}
-
-
-void Library::returnBook() {
-    string user;
-    cout << "\nEnter Book ID to Return: ";
-    getline(cin, sID);
-    cout << "Enter Your Name: ";
-    getline(cin, user);
-
-    bool issued = false;
-
-    // Remove entry from IssuedBooks.txt
-    ifstream issueIn("IssuedBooks.txt");
-    ofstream tempIssue("TempIssue.txt");
-
-    string bID, uname;
-    while (getline(issueIn, bID, '|')) {
-        getline(issueIn, uname);
-        if (bID == sID && uname == user) {
-            issued = true;
-            continue; // skip writing this line
-        }
-        tempIssue << bID << " | " << uname << "\n";
-    }
-    issueIn.close();
-    tempIssue.close();
-    remove("IssuedBooks.txt");
-    rename("TempIssue.txt", "IssuedBooks.txt");
-
-    // Now increase quantity in LibraryData
-    if (issued) {
-        file.open("LibraryData.txt", ios::in);
-        ofstream temp("Temp.txt");
-
-        while (getline(file, bookID, '|')) {
-            getline(file, title, '|');
-            getline(file, author, '|');
-            getline(file, quantity);
-
-            if (bookID == sID) {
-                int q = stoi(quantity);
-                q++;
-                quantity = to_string(q);
-                cout << "\nBook Returned Successfully!";
-            }
-
-            temp << bookID << " | " << title << " | " << author << " | " << quantity << "\n";
-        }
-
-        file.close();
-        temp.close();
-        remove("LibraryData.txt");
-        rename("Temp.txt", "LibraryData.txt");
-    } else {
-        cout << "\nNo record found for this user/book!";
+    if (!found) {
+        cout << "\nBook Not Found!";
     }
 }
+
